@@ -3,7 +3,7 @@
 
 """Модуль визуализации.
 Нигде, кроме этого модуля, не используются экранные координаты объектов.
-Функции, создающие гaрафические объекты и перемещающие их на экране, принимают физические координаты
+Функции, создающие графические объекты и перемещающие их на экране, принимают физические координаты
 """
 
 header_font = "Arial-16"
@@ -15,49 +15,22 @@ window_width = 800
 window_height = 800
 """Высота окна"""
 
-scale_factor = None
+scale_factor = 100000  # XXX
+v_scale_factor = 30000  # TODO(fetisu): Этот параметр отвечает за отображение вектора скорости. Подбери норм значение
 """Масштабирование экранных координат по отношению к физическим.
 Тип: float
 Мера: количество пикселей на один метр."""
 
 
-def calculate_scale_factor(max_distance):
+def calculate_scale_factor(space):
     """Вычисляет значение глобальной переменной **scale_factor** по данной характерной длине"""
     global scale_factor
-    scale_factor = 0.4*min(window_height, window_width)/max_distance
+    max_distance = max([max(abs(obj.x), abs(obj.y)) for obj in space.bodies])
+    scale_factor = 0.4 * min(window_height, window_width) / max_distance
     print('Scale factor:', scale_factor)
 
 
-def scale_x(x):
-    """Возвращает экранную **x** координату по **x** координате модели.
-    Принимает вещественное число, возвращает целое число.
-    В случае выхода **x** координаты за пределы экрана возвращает
-    координату, лежащую за пределами холста.
-
-    Параметры:
-
-    **x** — x-координата модели.
-    """
-
-    return int(x*scale_factor) + window_width//2
-
-
-def scale_y(y):
-    """Возвращает экранную **y** координату по **y** координате модели.
-    Принимает вещественное число, возвращает целое число.
-    В случае выхода **y** координаты за пределы экрана возвращает
-    координату, лежащую за пределами холста.
-    Направление оси развёрнуто, чтобы у модели ось **y** смотрела вверх.
-
-    Параметры:
-
-    **y** — y-координата модели.
-    """
-
-    return y  # FIXME: not done yet
-
-
-def create_star_image(space, star):
+def create_image(space, space_body):
     """Создаёт отображаемый объект звезды.
 
     Параметры:
@@ -66,21 +39,16 @@ def create_star_image(space, star):
     **star** — объект звезды.
     """
 
-    x = scale_x(star.x)
-    y = scale_y(star.y)
-    r = star.R
-    star.image = space.create_oval([x - r, y - r], [x + r, y + r], fill=star.color)
-
-
-def create_planet_image(space, planet):
-    """Создаёт отображаемый объект планеты.
-
-    Параметры:
-
-    **space** — холст для рисования.
-    **planet** — объект планеты.
-    """
-    pass  # FIXME: сделать как у звезды
+    x = int(space_body.x * scale_factor) + window_width // 2
+    y = int(space_body.y * scale_factor) + window_height // 2
+    vx = space_body.vx * scale_factor * v_scale_factor
+    vy = space_body.vy * scale_factor * v_scale_factor
+    r = space_body.r
+    space_body.ids = {'ball': space.create_oval([x - r, y - r], [x + r, y + r], fill=space_body.color),
+                      'arrow_body': space.create_line((x, y), (x + vx, y + vy), fill=space_body.color),
+                      'trace': None
+                      # TODO(fetisu): Дорисуешь стрелку? Сделаешь отрисовку траектории?
+                      }
 
 
 def update_system_name(space, system_name):
@@ -95,7 +63,7 @@ def update_system_name(space, system_name):
     space.create_text(30, 80, tag="header", text=system_name, font=header_font)
 
 
-def update_object_position(space, body):
+def update_object_position(space, space_body):
     """Перемещает отображаемый объект на холсте.
 
     Параметры:
@@ -103,13 +71,15 @@ def update_object_position(space, body):
     **space** — холст для рисования.
     **body** — тело, которое нужно переместить.
     """
-    x = scale_x(body.x)
-    y = scale_y(body.y)
-    r = body.R
-    if x + r < 0 or x - r > window_width or y + r < 0 or y - r > window_height:
-        space.coords(body.image, window_width + r, window_height + r,
-                     window_width + 2*r, window_height + 2*r)  # положить за пределы окна
-    space.coords(body.image, x - r, y - r, x + r, y + r)
+    x = int(space_body.x * scale_factor) + window_width // 2
+    y = int(space_body.y * scale_factor) + window_height // 2
+    vx = space_body.vx * scale_factor * v_scale_factor
+    vy = space_body.vy * scale_factor * v_scale_factor
+    r = space_body.r
+    space.coords(space_body.ids['ball'], x - r, y - r, x + r, y + r)
+    space.coords(space_body.ids['arrow_body'], x, y, x + vx, y + vy)
+    #  TODO(fetisu): И здесь тоже сделай отрисовку траектории
+    #   Можно ещё сделать автоматическую настройку масштаба - метод calculate_scale_factor в помощь
 
 
 if __name__ == "__main__":
