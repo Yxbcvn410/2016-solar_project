@@ -1,18 +1,16 @@
 # coding: utf-8
 # license: GPLv3
 
-import tkinter
-from tkinter.filedialog import *
-from solar_vis import *
-from solar_model import *
-from solar_input import *
+import tkinter.filedialog
+import tkinter.messagebox as mb
+
+import plot_dialog
+from solar_vis import window_width, window_height
+from space import Space
+from stats import get_stats, write_stats
 
 perform_execution = False
 """Флаг цикличности выполнения расчёта"""
-
-physical_time = 0
-"""Физическое время от начала расчёта.
-Тип: float"""
 
 displayed_time = None
 """Отображаемое на экране время.
@@ -22,8 +20,7 @@ time_step = None
 """Шаг по времени при моделировании.
 Тип: float"""
 
-space_objects = []
-"""Список космических объектов."""
+space = None
 
 
 def execution():
@@ -32,16 +29,32 @@ def execution():
     Цикличность выполнения зависит от значения глобальной переменной perform_execution.
     При perform_execution == True функция запрашивает вызов самой себя по таймеру через от 1 мс до 100 мс.
     """
-    global physical_time
+    global space
     global displayed_time
-    recalculate_space_objects_positions(space_objects, time_step.get())
-    for body in space_objects:
-        update_object_position(space, body)
-    physical_time += time_step.get()
-    displayed_time.set("%.1f" % physical_time + " seconds gone")
+    try:
+        space.step(time_step.get())
+    except tkinter.TclError:
+        pass
+
+    if space.time > 1000 * 365.25 * 24 * 60 * 60:
+        displayed_time.set("{:e} years gone".format(space.time // (365.25 * 24 * 60 * 60)))
+
+    elif space.time > 365.25 * 24 * 60 * 60:
+        displayed_time.set("{:.0f} years and {:.0f} days gone".format(space.time // (365.25 * 24 * 60 * 60),
+                                                                      (space.time // (24 * 60 * 60) % 365.25)))
+    elif space.time > 24 * 60 * 60:
+        displayed_time.set("{:.0f} days and {:.0f} hours gone".format(space.time // (24 * 60 * 60),
+                                                                      (space.time // 3600) % 24))
+    elif space.time > 3600:
+        displayed_time.set("{:.0f} hours and {:.0f} min gone".format(space.time // 3600,
+                                                                     (space.time // 60) % 60))
+    else:
+        displayed_time.set("{:.0f} min and {:.0f} seconds gone".format(space.time // 60,
+                                                                       space.time % 60))
 
     if perform_execution:
-        space.after(101 - int(time_speed.get()), execution)
+        # TODO(fetisu): Сделай больше диапазон управления задержкой, с возможностью отключить задержку вообще
+        space_canvas.after(101 - int(time_speed.get()), execution)
 
 
 def start_execution():
@@ -73,23 +86,9 @@ def open_file_dialog():
     функцию считывания параметров системы небесных тел из данного файла.
     Считанные объекты сохраняются в глобальный список space_objects
     """
-    global space_objects
-    global perform_execution
-    perform_execution = False
-    for obj in space_objects:
-        space.delete(obj.image)  # удаление старых изображений планет
-    in_filename = askopenfilename(filetypes=(("Text file", ".txt"),))
-    space_objects = read_space_objects_data_from_file(in_filename)
-    max_distance = max([max(abs(obj.x), abs(obj.y)) for obj in space_objects])
-    calculate_scale_factor(max_distance)
-
-    for obj in space_objects:
-        if obj.type == 'star':
-            create_star_image(space, obj)
-        elif obj.type == 'planet':
-            create_planet_image(space, obj)
-        else:
-            raise AssertionError()
+    stop_execution()
+    in_filename = tkinter.filedialog.askopenfilename(filetypes=(("JSON file", ".json"),))
+    space.load(in_filename)
 
 
 def save_file_dialog():
@@ -97,28 +96,46 @@ def save_file_dialog():
     функцию считывания параметров системы небесных тел из данного файла.
     Считанные объекты сохраняются в глобальный список space_objects
     """
-    out_filename = asksaveasfilename(filetypes=(("Text file", ".txt"),))
-    write_space_objects_data_to_file(out_filename, space_objects)
+    global space
+    out_filename = tkinter.filedialog.asksaveasfilename(filetypes=(("JSON file", ".json"),))
+    if out_filename != '':
+        space.save(out_filename)
+
+
+def show_stats(root):
+    stop_execution()
+    stats = get_stats(space)
+    plot_dialog.show_stats(root, stats, space)
+
+
+def save_stats():
+    stop_execution()
+    stats = get_stats(space)
+    if 0 not in stats:
+        mb.showerror('Error', 'No data to plot!')
+        start_execution()
+        return
+    in_filename = tkinter.filedialog.asksaveasfilename(filetypes=(("Text file", ".txt"),))
+    write_stats(stats, in_filename)
 
 
 def main():
     """Главная функция главного модуля.
     Создаёт объекты графического дизайна библиотеки tkinter: окно, холст, фрейм с кнопками, кнопки.
     """
-    global physical_time
     global displayed_time
     global time_step
     global time_speed
-    global space
+    global space_canvas
     global start_button
+    global space
 
     print('Modelling started!')
-    physical_time = 0
 
     root = tkinter.Tk()
     # космическое пространство отображается на холсте типа Canvas
-    space = tkinter.Canvas(root, width=window_width, height=window_height, bg="black")
-    space.pack(side=tkinter.TOP)
+    space_canvas = tkinter.Canvas(root, width=window_width, height=window_height, bg="black")
+    space_canvas.pack(side=tkinter.TOP)
     # нижняя панель с кнопками
     frame = tkinter.Frame(root)
     frame.pack(side=tkinter.BOTTOM)
@@ -139,14 +156,25 @@ def main():
     load_file_button.pack(side=tkinter.LEFT)
     save_file_button = tkinter.Button(frame, text="Save to file...", command=save_file_dialog)
     save_file_button.pack(side=tkinter.LEFT)
+    show_stats_button = tkinter.Button(frame, text='Show stats...', command=lambda: show_stats(root))
+    show_stats_button.pack(side=tkinter.LEFT)
+    save_stats_button = tkinter.Button(frame, text='Save stats...', command=save_stats)
+    save_stats_button.pack(side=tkinter.LEFT)
 
     displayed_time = tkinter.StringVar()
-    displayed_time.set(str(physical_time) + " seconds gone")
+    displayed_time.set("0 seconds gone")
     time_label = tkinter.Label(frame, textvariable=displayed_time, width=30)
     time_label.pack(side=tkinter.RIGHT)
 
+    trace_length = tkinter.DoubleVar()
+    update_trace = tkinter.Scale(frame, variable=trace_length, orient=tkinter.HORIZONTAL)
+    update_trace.pack(side=tkinter.RIGHT)
+
+    space = Space(space_canvas, trace_length)
+
     root.mainloop()
     print('Modelling finished!')
+
 
 if __name__ == "__main__":
     main()
