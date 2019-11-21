@@ -6,20 +6,24 @@
 Функции, создающие графические объекты и перемещающие их на экране, принимают физические координаты
 """
 
+
 header_font = "Arial-16"
 """Шрифт в заголовке"""
 
-window_width = 800
+window_width = 900
 """Ширина окна"""
 
 window_height = 800
 """Высота окна"""
 
-scale_factor = 100000  # XXX
-v_scale_factor = 30000  # TODO(fetisu): Этот параметр отвечает за отображение вектора скорости. Подбери норм значение
+scale_factor = None
+v_scale_factor = 30000
 """Масштабирование экранных координат по отношению к физическим.
 Тип: float
 Мера: количество пикселей на один метр."""
+
+name_dist = 20
+"""Расстояние в процентах от скорости для отображения названия объекта"""
 
 
 def calculate_scale_factor(space):
@@ -44,11 +48,14 @@ def create_image(space, space_body):
     vx = space_body.vx * scale_factor * v_scale_factor
     vy = space_body.vy * scale_factor * v_scale_factor
     r = space_body.r
-    space_body.ids = {'ball': space.create_oval([x - r, y - r], [x + r, y + r], fill=space_body.color),
-                      'arrow_body': space.create_line((x, y), (x + vx, y + vy), fill=space_body.color),
-                      'trace': None
-                      # TODO(fetisu): Дорисуешь стрелку? Сделаешь отрисовку траектории?
+    space_body.ids = {'ball': space.create_oval((0, 0), (0, 0), fill=space_body.color),
+                      'arrow_body': space.create_line((0, 0), (0, 0), fill=space_body.color),
+                      'arrow_end': [space.create_line((0, 0), (0, 0), fill=space_body.color),
+                                    space.create_line((0, 0), (0, 0), fill=space_body.color)],
+                      'trace': [space.create_oval((0, 0), (0, 0), fill=space_body.color)],
+                      'label': space.create_text(0, 0, text=space_body.name, fill=space_body.color)
                       }
+
 
 
 def update_system_name(space, system_name):
@@ -63,7 +70,7 @@ def update_system_name(space, system_name):
     space.create_text(30, 80, tag="header", text=system_name, font=header_font)
 
 
-def update_object_position(space, space_body):
+def update_object_position(space_obj, space_body):
     """Перемещает отображаемый объект на холсте.
 
     Параметры:
@@ -71,15 +78,42 @@ def update_object_position(space, space_body):
     **space** — холст для рисования.
     **body** — тело, которое нужно переместить.
     """
+    space = space_obj.canvas
     x = int(space_body.x * scale_factor) + window_width // 2
     y = int(space_body.y * scale_factor) + window_height // 2
     vx = space_body.vx * scale_factor * v_scale_factor
     vy = space_body.vy * scale_factor * v_scale_factor
     r = space_body.r
-    space.coords(space_body.ids['ball'], x - r, y - r, x + r, y + r)
-    space.coords(space_body.ids['arrow_body'], x, y, x + vx, y + vy)
-    #  TODO(fetisu): И здесь тоже сделай отрисовку траектории
-    #   Можно ещё сделать автоматическую настройку масштаба - метод calculate_scale_factor в помощь
+
+    space.coords(space_body.ids['ball'],
+                 x - r, y - r,
+                 x + r, y + r)
+    space.coords(space_body.ids['arrow_body'],
+                 x, y,
+                 x + vx, y + vy)
+    space.coords(space_body.ids['arrow_end'][0],
+                 x + vx, y + vy,
+                 x + 0.8 * vx - 0.1 * vy,
+                 y + 0.8 * vy + 0.1 * vx)
+    space.coords(space_body.ids['arrow_end'][1],
+                 x + vx, y + vy,
+                 x + 0.8 * vx + 0.1 * vy,
+                 y + 0.8 * vy - 0.1 * vx)
+    space.coords(space_body.ids['label'],
+                 x, y - r - name_dist)
+
+    if space_body.need_trace:
+        space_body.ids['trace'].append(space.create_oval([x - 1, y - 1], [x + 1, y + 1],
+                                                         fill=space_body.color))
+
+        space_body.trace.append((x, y))
+        space_body.need_trace = False
+        space_body.last_trace_x = space_body.x
+        space_body.last_trace_y = space_body.y
+
+        if len(space_body.trace) > space_obj.trace_length.get():
+            for i in range(- int(space_obj.trace_length.get()) - 1, -len(space_body.trace) - 1, -1):
+                space.delete(space_body.ids['trace'][i])
 
 
 if __name__ == "__main__":

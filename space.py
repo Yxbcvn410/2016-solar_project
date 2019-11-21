@@ -13,7 +13,7 @@ class SpaceBody:
     """
 
     def __init__(self, type=None, m=1, x=0, y=0, vx=0, vy=0, r=5, color='red'):
-        self.type = type  # TODO(fetisu): Возможно, бесполезное поле. Если да - выпили
+        self.name = type
         self.m = m
         self.x = x
         self.y = y
@@ -25,11 +25,14 @@ class SpaceBody:
         #  Tk canvas elements
         self.ids = None
         #  Body movement trace
-        self.trace = [(self.x, self.y)]
+        self.trace = [(x, y)]
+        self.need_trace = False
+        self.last_trace_x = x
+        self.last_trace_y = y
 
     def get_state(self):
         return {
-            'type': self.type,
+            'type': self.name,
             'm': self.m,
             'x': self.x,
             'y': self.y,
@@ -39,19 +42,16 @@ class SpaceBody:
             'color': self.color
         }
 
-    def destroy(self):
-        pass  # TODO(fetisu): Убираем tk-формы с холста
-
 
 class Space:
-    def __init__(self, canvas):
+    def __init__(self, canvas, trace_length):
         self.bodies = []
         self.time = 0
         self.canvas = canvas
+        self.trace_length = trace_length
 
     def load(self, filename):
-        for body in self.bodies:
-            body.destroy()
+        self.destroy_all()
         self.bodies.clear()
         configs = json.load(open(filename))
         for config in configs:
@@ -59,6 +59,7 @@ class Space:
         calculate_scale_factor(self)
         for body in self.bodies:
             create_image(self.canvas, body)
+            update_object_position(self, body)
 
     def save(self, filename):
         configs = [space_body.get_state() for space_body in self.bodies]
@@ -71,4 +72,7 @@ class Space:
 
     def redraw(self):
         for body in self.bodies:
-            update_object_position(self.canvas, body)
+            update_object_position(self, body)
+
+    def destroy_all(self):
+        self.canvas.delete('all')

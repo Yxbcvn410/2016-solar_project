@@ -33,8 +33,21 @@ def execution():
     except tkinter.TclError:
         pass
 
-    #  TODO(fetisu): Нужно нормальное отображение времени: сколько суток, лет, ...
-    displayed_time.set("{} seconds gone".format(space.time))
+    if space.time > 1000 * 365.25 * 24 * 60 * 60:
+        displayed_time.set("{:e} years gone".format(space.time // (365.25 * 24 * 60 * 60)))
+
+    elif space.time > 365.25 * 24 * 60 * 60:
+        displayed_time.set("{:.0f} years and {:.0f} days gone".format(space.time // (365.25 * 24 * 60 * 60),
+                                                                      (space.time // (24 * 60 * 60) % 365.25)))
+    elif space.time > 24 * 60 * 60:
+        displayed_time.set("{:.0f} days and {:.0f} hours gone".format(space.time // (24 * 60 * 60),
+                                                                      (space.time // 3600) % 24))
+    elif space.time > 3600:
+        displayed_time.set("{:.0f} hours and {:.0f} min gone".format(space.time // 3600,
+                                                                     (space.time // 60) % 60))
+    else:
+        displayed_time.set("{:.0f} min and {:.0f} seconds gone".format(space.time // 60,
+                                                                       space.time % 60))
 
     if perform_execution:
         # TODO(fetisu): Сделай больше диапазон управления задержкой, с возможностью отключить задержку вообще
@@ -130,7 +143,11 @@ def main():
     time_label = tkinter.Label(frame, textvariable=displayed_time, width=30)
     time_label.pack(side=tkinter.RIGHT)
 
-    space = Space(space_canvas)
+    trace_length = tkinter.DoubleVar()
+    update_trace = tkinter.Scale(frame, variable=trace_length, orient=tkinter.HORIZONTAL)
+    update_trace.pack(side=tkinter.RIGHT)
+
+    space = Space(space_canvas, trace_length)
 
     root.mainloop()
     print('Modelling finished!')

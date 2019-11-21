@@ -36,8 +36,8 @@ def model(space_objects, dt):
         body.x += body.vx * dt
         body.y += body.vy * dt
 
-        if True:  # TODO(fetisu): Сделай условие обновления траектории
-            body.trace.append((body.x, body.y))
+        if (body.x - body.last_trace_x) ** 2 + (body.y - body.last_trace_y) ** 2 > 10 ** 18:
+            body.need_trace = True
 
 
 if __name__ == "__main__":
