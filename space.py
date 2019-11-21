@@ -3,7 +3,7 @@
 import json
 
 from solar_model import model
-from solar_vis import update_object_position, calculate_scale_factor, create_image
+from solar_vis import update_object_position, calculate_scale_factor, create_image, calculate_v_scale_factor
 
 
 class SpaceBody:
@@ -26,9 +26,6 @@ class SpaceBody:
         self.ids = None
         #  Body movement trace
         self.trace = [(x, y)]
-        self.need_trace = False
-        self.last_trace_x = x
-        self.last_trace_y = y
 
     def get_state(self):
         return {
@@ -41,6 +38,12 @@ class SpaceBody:
             'r': self.r,
             'color': self.color
         }
+
+    def get_dist_from_last_trace(self):
+        return ((self.x - self.trace[-1][0]) ** 2 + (self.y - self.trace[-1][1]) ** 2) ** 0.5
+
+    def get_velocity(self):
+        return (self.vx ** 2 + self.vy ** 2) ** 0.5
 
 
 class Space:
@@ -57,6 +60,7 @@ class Space:
         for config in configs:
             self.bodies.append(SpaceBody(**config))
         calculate_scale_factor(self)
+        calculate_v_scale_factor(self)
         for body in self.bodies:
             create_image(self.canvas, body)
             update_object_position(self, body)
