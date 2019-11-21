@@ -3,7 +3,7 @@
 import json
 
 from solar_model import model
-from solar_vis import update_object_position, calculate_scale_factor, create_image
+from solar_vis import update_object_position, calculate_scale_factor, create_image, calculate_v_scale_factor
 
 
 class SpaceBody:
@@ -13,7 +13,7 @@ class SpaceBody:
     """
 
     def __init__(self, type=None, m=1, x=0, y=0, vx=0, vy=0, r=5, color='red'):
-        self.type = type  # TODO(fetisu): Возможно, бесполезное поле. Если да - выпили
+        self.name = type
         self.m = m
         self.x = x
         self.y = y
@@ -25,11 +25,11 @@ class SpaceBody:
         #  Tk canvas elements
         self.ids = None
         #  Body movement trace
-        self.trace = [(self.x, self.y)]
+        self.trace = [(0, x, y, vx, vy)]
 
     def get_state(self):
         return {
-            'type': self.type,
+            'type': self.name,
             'm': self.m,
             'x': self.x,
             'y': self.y,
@@ -39,26 +39,32 @@ class SpaceBody:
             'color': self.color
         }
 
-    def destroy(self):
-        pass  # TODO(fetisu): Убираем tk-формы с холста
+    def get_dist_from_last_trace(self):
+        return ((self.x - self.trace[-1][1]) ** 2 +
+                (self.y - self.trace[-1][2]) ** 2) ** 0.5
+
+    def get_velocity(self):
+        return (self.vx ** 2 + self.vy ** 2) ** 0.5
 
 
 class Space:
-    def __init__(self, canvas):
+    def __init__(self, canvas, trace_length):
         self.bodies = []
         self.time = 0
         self.canvas = canvas
+        self.trace_length = trace_length
 
     def load(self, filename):
-        for body in self.bodies:
-            body.destroy()
+        self.destroy_all()
         self.bodies.clear()
         configs = json.load(open(filename))
         for config in configs:
             self.bodies.append(SpaceBody(**config))
         calculate_scale_factor(self)
+        calculate_v_scale_factor(self)
         for body in self.bodies:
             create_image(self.canvas, body)
+            update_object_position(self, body)
 
     def save(self, filename):
         configs = [space_body.get_state() for space_body in self.bodies]
@@ -71,4 +77,7 @@ class Space:
 
     def redraw(self):
         for body in self.bodies:
-            update_object_position(self.canvas, body)
+            update_object_position(self, body)
+
+    def destroy_all(self):
+        self.canvas.delete('all')

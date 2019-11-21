@@ -36,9 +36,6 @@ def model(space_objects, dt):
         body.x += body.vx * dt
         body.y += body.vy * dt
 
-        if True:  # TODO(fetisu): Сделай условие обновления траектории
-            body.trace.append((body.x, body.y))
-
 
 if __name__ == "__main__":
     print("This module is not for direct call!")
