@@ -2,9 +2,12 @@
 # license: GPLv3
 
 import tkinter.filedialog
+import tkinter.messagebox as mb
 
+import plot_dialog
 from solar_vis import window_width, window_height
 from space import Space
+from stats import get_stats, write_stats
 
 perform_execution = False
 """Флаг цикличности выполнения расчёта"""
@@ -51,7 +54,7 @@ def execution():
 
     if perform_execution:
         # TODO(fetisu): Сделай больше диапазон управления задержкой, с возможностью отключить задержку вообще
-        space_canvas.after(100 - int(time_speed.get()), execution)
+        space_canvas.after(101 - int(time_speed.get()), execution)
 
 
 def start_execution():
@@ -83,7 +86,6 @@ def open_file_dialog():
     функцию считывания параметров системы небесных тел из данного файла.
     Считанные объекты сохраняются в глобальный список space_objects
     """
-    global space
     stop_execution()
     in_filename = tkinter.filedialog.askopenfilename(filetypes=(("JSON file", ".json"),))
     space.load(in_filename)
@@ -98,6 +100,23 @@ def save_file_dialog():
     out_filename = tkinter.filedialog.asksaveasfilename(filetypes=(("JSON file", ".json"),))
     if out_filename != '':
         space.save(out_filename)
+
+
+def show_stats(root):
+    stop_execution()
+    stats = get_stats(space)
+    plot_dialog.show_stats(root, stats, space)
+
+
+def save_stats():
+    stop_execution()
+    stats = get_stats(space)
+    if 0 not in stats:
+        mb.showerror('Error', 'No data to plot!')
+        start_execution()
+        return
+    in_filename = tkinter.filedialog.asksaveasfilename(filetypes=(("Text file", ".txt"),))
+    write_stats(stats, in_filename)
 
 
 def main():
@@ -137,6 +156,10 @@ def main():
     load_file_button.pack(side=tkinter.LEFT)
     save_file_button = tkinter.Button(frame, text="Save to file...", command=save_file_dialog)
     save_file_button.pack(side=tkinter.LEFT)
+    show_stats_button = tkinter.Button(frame, text='Show stats...', command=lambda: show_stats(root))
+    show_stats_button.pack(side=tkinter.LEFT)
+    save_stats_button = tkinter.Button(frame, text='Save stats...', command=save_stats)
+    save_stats_button.pack(side=tkinter.LEFT)
 
     displayed_time = tkinter.StringVar()
     displayed_time.set("0 seconds gone")

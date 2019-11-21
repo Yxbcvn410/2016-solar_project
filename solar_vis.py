@@ -9,7 +9,7 @@
 header_font = "Arial-16"
 """Шрифт в заголовке"""
 
-window_width = 900
+window_width = 1000
 """Ширина окна"""
 
 window_height = 800
@@ -51,11 +51,6 @@ def create_image(space, space_body):
     **star** — объект звезды.
     """
 
-    x = int(space_body.x * scale_factor) + window_width // 2
-    y = int(space_body.y * scale_factor) + window_height // 2
-    vx = space_body.vx * scale_factor * v_scale_factor
-    vy = space_body.vy * scale_factor * v_scale_factor
-    r = space_body.r
     space_body.ids = {'ball': space.create_oval((0, 0), (0, 0), fill=space_body.color),
                       'arrow_body': space.create_line((0, 0), (0, 0), fill=space_body.color),
                       'arrow_end': [space.create_line((0, 0), (0, 0), fill=space_body.color),
@@ -115,12 +110,11 @@ def update_object_position(space_obj, space_body):
     if trace_dist > max_trace_dist:
         space_body.ids['trace'].append(space.create_oval([x - 1, y - 1], [x + 1, y + 1],
                                                          fill=space_body.color))
+        space_body.vis_pt = (space_body.x, space_body.y)
 
-        space_body.trace.append((space_obj.time, space_body.x, space_body.y, space_body.vx, space_body.vy))
-
-        if len(space_body.trace) > space_obj.trace_length.get():
-            for i in range(- int(space_obj.trace_length.get()) - 1, -len(space_body.trace) - 1, -1):
-                space.delete(space_body.ids['trace'][i])
+    while (len(space_body.ids['trace']) > space_obj.trace_length.get()) and (space_obj.trace_length.get() != 100):
+        space.delete(space_body.ids['trace'][0])
+        space_body.ids['trace'].pop(0)
 
 
 if __name__ == "__main__":

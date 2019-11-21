@@ -21,6 +21,7 @@ class SpaceBody:
         self.vy = vy
         self.r = r
         self.color = color
+        self.vis_pt = (x, y)
 
         #  Tk canvas elements
         self.ids = None
@@ -40,8 +41,8 @@ class SpaceBody:
         }
 
     def get_dist_from_last_trace(self):
-        return ((self.x - self.trace[-1][1]) ** 2 +
-                (self.y - self.trace[-1][2]) ** 2) ** 0.5
+        return ((self.x - self.vis_pt[0]) ** 2 +
+                (self.y - self.vis_pt[1]) ** 2) ** 0.5
 
     def get_velocity(self):
         return (self.vx ** 2 + self.vy ** 2) ** 0.5
@@ -53,6 +54,7 @@ class Space:
         self.time = 0
         self.canvas = canvas
         self.trace_length = trace_length
+        self.counter = 0
 
     def load(self, filename):
         self.destroy_all()
@@ -74,6 +76,10 @@ class Space:
         model(self.bodies, dt)
         self.redraw()
         self.time += dt
+        if not self.counter % 25:
+            for body in self.bodies:
+                body.trace.append((self.time, body.x, body.y, body.vx, body.vy))
+        self.counter += 1
 
     def redraw(self):
         for body in self.bodies:
