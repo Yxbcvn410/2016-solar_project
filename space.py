@@ -40,7 +40,8 @@ class SpaceBody:
         }
 
     def get_dist_from_last_trace(self):
-        return ((self.x - self.trace[-1][1]) ** 2 + (self.y - self.trace[-1][2]) ** 2) ** 0.5
+        return ((self.x - self.trace[-1][1]) ** 2 +
+                (self.y - self.trace[-1][2]) ** 2) ** 0.5
 
     def get_velocity(self):
         return (self.vx ** 2 + self.vy ** 2) ** 0.5
