@@ -116,7 +116,7 @@ def update_object_position(space_obj, space_body):
         space_body.ids['trace'].append(space.create_oval([x - 1, y - 1], [x + 1, y + 1],
                                                          fill=space_body.color))
 
-        space_body.trace.append((space_body.x, space_body.y))
+        space_body.trace.append((space_obj.time, space_body.x, space_body.y, space_body.vx, space_body.vy))
 
         if len(space_body.trace) > space_obj.trace_length.get():
             for i in range(- int(space_obj.trace_length.get()) - 1, -len(space_body.trace) - 1, -1):

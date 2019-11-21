@@ -25,7 +25,7 @@ class SpaceBody:
         #  Tk canvas elements
         self.ids = None
         #  Body movement trace
-        self.trace = [(x, y)]
+        self.trace = [(0, x, y, vx, vy)]
 
     def get_state(self):
         return {
@@ -40,7 +40,7 @@ class SpaceBody:
         }
 
     def get_dist_from_last_trace(self):
-        return ((self.x - self.trace[-1][0]) ** 2 + (self.y - self.trace[-1][1]) ** 2) ** 0.5
+        return ((self.x - self.trace[-1][1]) ** 2 + (self.y - self.trace[-1][2]) ** 2) ** 0.5
 
     def get_velocity(self):
         return (self.vx ** 2 + self.vy ** 2) ** 0.5
