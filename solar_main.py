@@ -2,9 +2,12 @@
 # license: GPLv3
 
 import tkinter.filedialog
+import matplotlib.pyplot as plt
 
 from solar_vis import window_width, window_height
 from space import Space
+from stats import get_stats, get_time_axis, get_vel_axis
+
 
 perform_execution = False
 """Флаг цикличности выполнения расчёта"""
@@ -87,6 +90,15 @@ def save_file_dialog():
         space.save(out_filename)
 
 
+def show_stats():
+    stats = get_stats(space)
+    time_axis = get_time_axis(stats)
+    vel_axis = get_vel_axis(stats, 0)
+    plt.plot(time_axis, vel_axis)
+    plt.ylabel('some numbers')
+    plt.show()
+
+
 def main():
     """Главная функция главного модуля.
     Создаёт объекты графического дизайна библиотеки tkinter: окно, холст, фрейм с кнопками, кнопки.
@@ -124,6 +136,8 @@ def main():
     load_file_button.pack(side=tkinter.LEFT)
     save_file_button = tkinter.Button(frame, text="Save to file...", command=save_file_dialog)
     save_file_button.pack(side=tkinter.LEFT)
+    show_stats_button = tkinter.Button(frame, text='Show stats...', command=show_stats)
+    show_stats_button.pack(side=tkinter.LEFT)
 
     displayed_time = tkinter.StringVar()
     displayed_time.set("0 seconds gone")
